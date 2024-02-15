@@ -1,0 +1,27 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1707911045930,
+      "tag": "0000_typical_the_initiative",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1707913489283,
+      "tag": "0001_powerful_northstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1707997904468,
+      "tag": "0002_fair_nightmare",
+      "breakpoints": true
+    }
+  ]
+}
