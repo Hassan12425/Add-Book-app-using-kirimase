@@ -90,12 +90,12 @@ const Aurthor = ({
   return (
     <li
       className={cn(
-        "flex justify-between my-2",
+        "flex justify-between my-2 border border-collapse",
         mutating ? "opacity-30 animate-pulse" : "",
         deleting ? "text-destructive" : "",
       )}
     >
-      <div className="w-full">
+      <div className="w-full p-2">
         <div>{aurthor.name}</div>
       </div>
       <Button variant={"link"} asChild>

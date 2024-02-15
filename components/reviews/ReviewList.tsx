@@ -5,32 +5,34 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
-import { type Author, CompleteAuthor } from "@/lib/db/schema/authors";
+import { type Review, CompleteReview } from "@/lib/db/schema/reviews";
 import Modal from "@/components/shared/Modal";
-
-import { useOptimisticAuthors } from "@/app/(app)/authors/useOptimisticAuthors";
+import { type Book, type BookId } from "@/lib/db/schema/books";
+import { useOptimisticReviews } from "@/app/(app)/reviews/useOptimisticReviews";
 import { Button } from "@/components/ui/button";
-import AuthorForm from "./AuthorForm";
+import ReviewForm from "./ReviewForm";
 import { PlusIcon } from "lucide-react";
 
-type TOpenModal = (author?: Author) => void;
+type TOpenModal = (review?: Review) => void;
 
-export default function AuthorList({
-  authors,
-   
+export default function ReviewList({
+  reviews,
+  books,
+  bookId 
 }: {
-  authors: CompleteAuthor[];
-   
+  reviews: CompleteReview[];
+  books: Book[];
+  bookId?: BookId 
 }) {
-  const { optimisticAuthors, addOptimisticAuthor } = useOptimisticAuthors(
-    authors,
-     
+  const { optimisticReviews, addOptimisticReview } = useOptimisticReviews(
+    reviews,
+    books 
   );
   const [open, setOpen] = useState(false);
-  const [activeAuthor, setActiveAuthor] = useState<Author | null>(null);
-  const openModal = (author?: Author) => {
+  const [activeReview, setActiveReview] = useState<Review | null>(null);
+  const openModal = (review?: Review) => {
     setOpen(true);
-    author ? setActiveAuthor(author) : setActiveAuthor(null);
+    review ? setActiveReview(review) : setActiveReview(null);
   };
   const closeModal = () => setOpen(false);
 
@@ -39,14 +41,15 @@ export default function AuthorList({
       <Modal
         open={open}
         setOpen={setOpen}
-        title={activeAuthor ? "Edit Author" : "Create Author"}
+        title={activeReview ? "Edit Review" : "Create Review"}
       >
-        <AuthorForm
-          author={activeAuthor}
-          addOptimistic={addOptimisticAuthor}
+        <ReviewForm
+          review={activeReview}
+          addOptimistic={addOptimisticReview}
           openModal={openModal}
           closeModal={closeModal}
-          
+          books={books}
+        bookId={bookId}
         />
       </Modal>
       <div className="absolute right-0 top-0 ">
@@ -54,14 +57,14 @@ export default function AuthorList({
           +
         </Button>
       </div>
-      {optimisticAuthors.length === 0 ? (
+      {optimisticReviews.length === 0 ? (
         <EmptyState openModal={openModal} />
       ) : (
         <ul>
-          {optimisticAuthors.map((author) => (
-            <Author
-              author={author}
-              key={author.id}
+          {optimisticReviews.map((review) => (
+            <Review
+              review={review}
+              key={review.id}
               openModal={openModal}
             />
           ))}
@@ -71,35 +74,35 @@ export default function AuthorList({
   );
 }
 
-const Author = ({
-  author,
+const Review = ({
+  review,
   openModal,
 }: {
-  author: CompleteAuthor;
+  review: CompleteReview;
   openModal: TOpenModal;
 }) => {
-  const optimistic = author.id === "optimistic";
-  const deleting = author.id === "delete";
+  const optimistic = review.id === "optimistic";
+  const deleting = review.id === "delete";
   const mutating = optimistic || deleting;
   const pathname = usePathname();
-  const basePath = pathname.includes("authors")
+  const basePath = pathname.includes("reviews")
     ? pathname
-    : pathname + "/authors/";
+    : pathname + "/reviews/";
 
 
   return (
     <li
       className={cn(
-        "flex justify-between my-2",
+        "flex justify-between my-2 border border-collapse",
         mutating ? "opacity-30 animate-pulse" : "",
         deleting ? "text-destructive" : "",
       )}
     >
-      <div className="w-full">
-        <div>{author.name}</div>
+      <div className="w-full  p-2">
+        <div>{review?.book?.title} &ensp; ==&gt; {review.content}</div>
       </div>
       <Button variant={"link"} asChild>
-        <Link href={ basePath + "/" + author.id }>
+        <Link href={ basePath + "/" + review.id }>
           Edit
         </Link>
       </Button>
@@ -111,14 +114,14 @@ const EmptyState = ({ openModal }: { openModal: TOpenModal }) => {
   return (
     <div className="text-center">
       <h3 className="mt-2 text-sm font-semibold text-secondary-foreground">
-        No authors
+        No reviews
       </h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Get started by creating a new author.
+        Get started by creating a new review.
       </p>
       <div className="mt-6">
         <Button onClick={() => openModal()}>
-          <PlusIcon className="h-4" /> New Authors </Button>
+          <PlusIcon className="h-4" /> New Reviews </Button>
       </div>
     </div>
   );

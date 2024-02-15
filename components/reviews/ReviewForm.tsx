@@ -1,3 +1,4 @@
+'use client'
 import { z } from "zod";
 
 import { useState, useTransition } from "react";
@@ -7,7 +8,7 @@ import { toast } from "sonner";
 import { useValidatedForm } from "@/lib/hooks/useValidatedForm";
 
 import { type Action, cn } from "@/lib/utils";
-import { type TAddOptimistic } from "@/app/(app)/authors/useOptimisticAuthors";
+import { type TAddOptimistic } from "@/app/(app)/reviews/useOptimisticReviews";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,44 +16,53 @@ import { Label } from "@/components/ui/label";
 import { useBackPath } from "@/components/shared/BackButton";
 
 
-
-import { type Author, insertAuthorParams } from "@/lib/db/schema/authors";
 import {
-  createAuthorAction,
-  deleteAuthorAction,
-  updateAuthorAction,
-} from "@/lib/actions/authors";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+import { type Review, insertReviewParams } from "@/lib/db/schema/reviews";
+import {
+  createReviewAction,
+  deleteReviewAction,
+  updateReviewAction,
+} from "@/lib/actions/reviews";
+import { type Book, type BookId } from "@/lib/db/schema/books";
 
-const AuthorForm = ({
-  
-  author,
+const ReviewForm = ({
+  books,
+  bookId,
+  review,
   openModal,
   closeModal,
   addOptimistic,
   postSuccess,
 }: {
-  author?: Author | null;
-  
-  openModal?: (author?: Author) => void;
+  review?: Review | null;
+  books: Book[];
+  bookId?: BookId
+  openModal?: (review?: Review) => void;
   closeModal?: () => void;
   addOptimistic?: TAddOptimistic;
   postSuccess?: () => void;
 }) => {
   const { errors, hasErrors, setErrors, handleChange } =
-    useValidatedForm<Author>(insertAuthorParams);
-  const editing = !!author?.id;
+    useValidatedForm<Review>(insertReviewParams);
+  const editing = !!review?.id;
   
   const [isDeleting, setIsDeleting] = useState(false);
   const [pending, startMutation] = useTransition();
 
   const router = useRouter();
-  const backpath = useBackPath("authors");
+  const backpath = useBackPath("reviews");
 
 
   const onSuccess = (
     action: Action,
-    data?: { error: string; values: Author },
+    data?: { error: string; values: Review },
   ) => {
     const failed = Boolean(data?.error);
     if (failed) {
@@ -63,7 +73,7 @@ const AuthorForm = ({
     } else {
       router.refresh();
       postSuccess && postSuccess();
-      toast.success(`Author ${action}d!`);
+      toast.success(`Review ${action}d!`);
       if (action === "delete") router.push(backpath);
     }
   };
@@ -72,35 +82,35 @@ const AuthorForm = ({
     setErrors(null);
 
     const payload = Object.fromEntries(data.entries());
-    const authorParsed = await insertAuthorParams.safeParseAsync({  ...payload });
-    if (!authorParsed.success) {
-      setErrors(authorParsed?.error.flatten().fieldErrors);
+    const reviewParsed = await insertReviewParams.safeParseAsync({ bookId, ...payload });
+    if (!reviewParsed.success) {
+      setErrors(reviewParsed?.error.flatten().fieldErrors);
       return;
     }
 
     closeModal && closeModal();
-    const values = authorParsed.data;
-    const pendingAuthor: Author = {
-      updatedAt: author?.updatedAt ?? new Date(),
-      createdAt: author?.createdAt ?? new Date(),
-      id: author?.id ?? "",
-      userId: author?.userId ?? "",
+    const values = reviewParsed.data;
+    const pendingReview: Review = {
+      updatedAt: review?.updatedAt ?? new Date(),
+      createdAt: review?.createdAt ?? new Date(),
+      id: review?.id ?? "",
+      userId: review?.userId ?? "",
       ...values,
     };
     try {
       startMutation(async () => {
         addOptimistic && addOptimistic({
-          data: pendingAuthor,
+          data: pendingReview,
           action: editing ? "update" : "create",
         });
 
         const error = editing
-          ? await updateAuthorAction({ ...values, id: author.id })
-          : await createAuthorAction(values);
+          ? await updateReviewAction({ ...values, id: review.id })
+          : await createReviewAction(values);
 
         const errorFormatted = {
           error: error ?? "Error",
-          values: pendingAuthor 
+          values: pendingReview 
         };
         onSuccess(
           editing ? "update" : "create",
@@ -121,23 +131,53 @@ const AuthorForm = ({
         <Label
           className={cn(
             "mb-2 inline-block",
-            errors?.name ? "text-destructive" : "",
+            errors?.content ? "text-destructive" : "",
           )}
         >
-          Name
+          Content
         </Label>
         <Input
           type="text"
-          name="name"
-          className={cn(errors?.name ? "ring ring-destructive" : "")}
-          defaultValue={author?.name ?? ""}
+          name="content"
+          className={cn(errors?.content ? "ring ring-destructive" : "")}
+          defaultValue={review?.content ?? ""}
         />
-        {errors?.name ? (
-          <p className="text-xs text-destructive mt-2">{errors.name[0]}</p>
+        {errors?.content ? (
+          <p className="text-xs text-destructive mt-2">{errors.content[0]}</p>
         ) : (
           <div className="h-6" />
         )}
       </div>
+
+      {bookId ? null : <div>
+        <Label
+          className={cn(
+            "mb-2 inline-block",
+            errors?.bookId ? "text-destructive" : "",
+          )}
+        >
+          Book
+        </Label>
+        <Select defaultValue={review?.bookId} name="bookId">
+          <SelectTrigger
+            className={cn(errors?.bookId ? "ring ring-destructive" : "")}
+          >
+            <SelectValue placeholder="Select a book" />
+          </SelectTrigger>
+          <SelectContent>
+          {books?.map((book) => (
+            <SelectItem key={book.id} value={book.id.toString()}>
+              {book.title}
+            </SelectItem>
+           ))}
+          </SelectContent>
+        </Select>
+        {errors?.bookId ? (
+          <p className="text-xs text-destructive mt-2">{errors.bookId[0]}</p>
+        ) : (
+          <div className="h-6" />
+        )}
+      </div> }
       {/* Schema fields end */}
 
       {/* Save Button */}
@@ -153,12 +193,12 @@ const AuthorForm = ({
             setIsDeleting(true);
             closeModal && closeModal();
             startMutation(async () => {
-              addOptimistic && addOptimistic({ action: "delete", data: author });
-              const error = await deleteAuthorAction(author.id);
+              addOptimistic && addOptimistic({ action: "delete", data: review });
+              const error = await deleteReviewAction(review.id);
               setIsDeleting(false);
               const errorFormatted = {
                 error: error ?? "Error",
-                values: author,
+                values: review,
               };
 
               onSuccess("delete", error ? errorFormatted : undefined);
@@ -172,7 +212,7 @@ const AuthorForm = ({
   );
 };
 
-export default AuthorForm;
+export default ReviewForm;
 
 const SaveButton = ({
   editing,
